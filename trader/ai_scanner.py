@@ -5,6 +5,7 @@ import os
 import time
 import urllib.request
 import threading
+from trader.discord_bridge import discord_bridge
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
 
@@ -736,6 +737,23 @@ def paper_buy(
         state
     )
 
+    # ==========================================
+    # DISCORD - OPEN ORDER
+    # ==========================================
+
+    discord_bridge.order(
+        "BUY",
+        pair,
+        price,
+        score,
+        [
+            "AI BUY signal",
+            f"Entry score {score * 100:.2f}%"
+        ]
+    )
+
+    discord_bridge.sync_state()
+
     log(
         f"PAPER BUY | "
         f"{pair.upper()} | "
@@ -909,6 +927,27 @@ def paper_sell(
         memory
     )
 
+    # ==========================================
+    # DISCORD - CLOSE ORDER
+    # ==========================================
+
+    discord_bridge.order(
+        "SELL",
+        pair,
+        price,
+        score,
+        [
+            f"Profit/Loss Rp{profit:,.0f}",
+            f"AI score {score * 100:.2f}%"
+        ]
+    )
+
+    # Simpan learning terbaru ke Discord
+    discord_bridge.sync_memory()
+
+    # Simpan state terbaru ke Discord
+    discord_bridge.sync_state()
+
     log(
         f"PAPER SELL | "
         f"{pair.upper()} | "
@@ -956,6 +995,17 @@ def main():
     )
 
     health_thread.start()
+
+    # ==========================================
+    # DISCORD BRIDGE
+    # ==========================================
+
+    print()
+    print("Menghubungkan Discord...")
+
+    discord_bridge.start()
+
+    print("Discord bridge siap.")
 
     print()
     print("=" * 60)
