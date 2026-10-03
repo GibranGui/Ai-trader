@@ -4,6 +4,8 @@ import math
 import os
 import time
 import urllib.request
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
 
 # ============================================================
@@ -914,12 +916,46 @@ def paper_sell(
         f"P/L Rp{profit:,.0f}"
     )
 
+# ============================================================
+# KOYEB HEALTH CHECK
+# ============================================================
+
+PORT = int(os.environ.get("PORT", 8000))
+
+
+class HealthHandler(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        return
+
+
+def start_health_server():
+
+    server = HTTPServer(
+        ("0.0.0.0", PORT),
+        HealthHandler
+    )
+
+    server.serve_forever()
 
 # ============================================================
 # MAIN
 # ============================================================
 
 def main():
+
+    health_thread = threading.Thread(
+        target=start_health_server,
+        daemon=True
+    )
+
+    health_thread.start()
 
     print()
     print("=" * 60)
